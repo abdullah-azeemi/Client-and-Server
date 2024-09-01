@@ -20,3 +20,8 @@ client
 # For VS CODE
 
 .vscode
+
+build/*
+
+cJson/*
+
