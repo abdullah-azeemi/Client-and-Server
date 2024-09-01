@@ -1,0 +1,22 @@
+# Ignore object files, executables, and temporary files
+*.o
+*.out
+*.exe
+
+# Ignore the uploads directory if you don't want to track uploaded files
+uploads/*
+
+# Ignore editor-specific temporary files
+*.swp
+*.swo
+*~
+*.log
+.DS_Store
+
+# Ignore compiled server and client binaries
+server
+client
+
+# For VS CODE
+
+.vscode

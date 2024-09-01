@@ -1,10 +1,10 @@
 // client.c
-#include <stdio.h>     // printf, scanf
-#include <string.h>    // strlen, strcmp
-#include <sys/socket.h> // socket, connect
-#include <arpa/inet.h> // inet_addr, sockaddr_in
-#include <unistd.h>    // close
-#include <stdlib.h>    // exit
+#include <stdio.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 #define BUF_SIZE 2000
 
@@ -34,61 +34,66 @@ int main(int argc, char *argv[]) {
     }
     puts("Connected");
 
-    // Keep communicating with server
+    // Communicate with server
     while (1) {
-        printf("Enter message (type 'exit' to quit): ");
+        printf("Enter command: ");
         scanf("%s", message);
 
-        // Check for exit command
         if (strcmp(message, "exit") == 0) {
             break;
         }
 
-        // Handle upload command
-        if (strncmp(message, "$upload$", strlen("$upload$")) == 0) {
-            char *file_path = message + strlen("$upload$");
+        if (strncmp(message, "$UPLOAD$", 8) == 0) {
+            char *file_path = message + 8;
             upload_file(sock, file_path);
             continue;
         }
 
-        // Send the message
+        // Send message
         if (send(sock, message, strlen(message), 0) < 0) {
             puts("Send failed");
             return 1;
         }
 
-        // Receive a reply from the server
+        // Receive response
         int recv_size = recv(sock, server_reply, BUF_SIZE, 0);
         if (recv_size < 0) {
             puts("Recv failed");
             break;
         }
-        server_reply[recv_size] = '\0'; // Null-terminate the received string
+        server_reply[recv_size] = '\0'; // Null-terminate the response
 
         puts("Server reply:");
         puts(server_reply);
     }
 
-    // Close the socket
     close(sock);
     return 0;
 }
 
-// Function to handle file upload
 void upload_file(int sock, const char *file_path) {
     FILE *file = fopen(file_path, "rb");
     if (!file) {
         perror("Failed to open file");
-        send(sock, "Failed to open file", strlen("Failed to open file"), 0);
+        const char *msg = "Failed to open file";
+        send(sock, msg, strlen(msg), 0);
         return;
     }
 
-    // Notify the server about the upload
+    // Notify server about the upload
     char upload_command[BUF_SIZE];
-    snprintf(upload_command, sizeof(upload_command), "$upload$%s", file_path);
+    snprintf(upload_command, sizeof(upload_command), "$UPLOAD$%s", file_path);
     send(sock, upload_command, strlen(upload_command), 0);
 
-    // Read and send the file in chunks
+    char server_reply[BUF_SIZE];
+    int recv_size = recv(sock, server_reply, BUF_SIZE, 0);
+    if (recv_size < 0 || strncmp(server_reply, "$SUCCESS$", 9) != 0) {
+        puts("Upload request failed.");
+        fclose(file);
+        return;
+    }
+
+    // Send file data
     char buffer[BUF_SIZE];
     size_t bytes_read;
     while ((bytes_read = fread(buffer, 1, sizeof(buffer), file)) > 0) {
@@ -99,5 +104,14 @@ void upload_file(int sock, const char *file_path) {
     }
 
     fclose(file);
-    puts("File upload completed");
+
+    // Receive final server response
+    recv_size = recv(sock, server_reply, BUF_SIZE, 0);
+    if (recv_size < 0) {
+        puts("Recv failed");
+    } else {
+        server_reply[recv_size] = '\0';
+        puts("Server response:");
+        puts(server_reply);
+    }
 }

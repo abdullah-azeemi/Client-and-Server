@@ -3,25 +3,31 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>   //inet_addr
 #include <unistd.h>   //write
-#include <cJson/cJson.h>
-
+#include <stdlib.h>
+#include<sys/stat.h>
+#include<sys/statvfs.h>
+#include<dirent.h>
+#include<errno.h>
 
 
 #define BUF_SIZE 2000
 #define UPLOAD_DIR "./uploads/"
+#define CLIENT_STORAGE_LIMIT 10240 // 10 kbs
 
-
-int is_command(const char* input);
-char * extract_file_path(const char * input);
+void handle_client(int client_sock);
 void handle_upload(int client_sock, const char * file_path);
+void handle_view(int client_sock);
+void handle_download(int client_sock, const char * file_name);
+int check_storage_space();
+void create_upload_dir();
 
 
-int main(int argc, char *argv[]) {
-    int socket_desc, client_sock, c, read_size;
+int main(){
+    int socket_desc, client_sock, c;
     struct sockaddr_in server, client;
-    char client_message[BUF_SIZE];
 
-    //Create socket
+    create_upload_dir();
+
     socket_desc = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_desc == -1) {
         printf("Could not create socket");
@@ -33,17 +39,19 @@ int main(int argc, char *argv[]) {
     server.sin_addr.s_addr = INADDR_ANY;
     server.sin_port = htons(8889);
 
+    // Binding 
     if (bind(socket_desc, (struct sockaddr *)&server, sizeof(server)) < 0) {
         perror("bind failed. Error");
         return 1;
     }
     puts("bind done");
 
+    // Listen
     listen(socket_desc, 3);
-
     puts("Waiting for incoming connections...");
     c = sizeof(struct sockaddr_in);
 
+    // accepting conncections
     client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c);
     if (client_sock < 0) {
         perror("accept failed");
@@ -51,61 +59,149 @@ int main(int argc, char *argv[]) {
     }
     puts("Connection accepted");
 
-    while ((read_size = recv(client_sock, client_message, BUF_SIZE, 0)) > 0) {
-        client_message[read_size] = '\0'; 
-
-        char * welcome_msg[] = "aur paen ki hal chal";
-        char * unwelcome_msg[] = "bhai ap kon";
-        if (strcmp(client_message, "hello") == 0) {
-            write(client_sock,welcome_msg,sizeof(welcome_msg));
-        } else {
-            write(client_sock, unwelcome_msg, size_of(unwelcome_msg));
-        }
-    }
-
-    if (read_size == 0) {
-        puts("Client disconnected");
-        fflush(stdout);
-    } else if (read_size == -1) {
-        perror("recv failed");
-    }
-
+    handle_client(client_sock);
+    
     close(client_sock);
     close(socket_desc);
+
     return 0;
 }
 
-char* extract_file_path(const char * input){
-    
-    if(!is_command(input)){
-        return NULL;
-    }   
+void handle_client(int client_sock){
+    char client_message[BUF_SIZE];
+    int read_size;
 
-    const char * file_path = input + strlen("$upload$");
-    return strdup(file_path);
+    while((read_size = recv(client_sock, client_message, BUF_SIZE, 0)) > 0){
+        client_message[read_size] = '\0';
+
+        if (strncmp(client_message, "$UPLOAD$", 8) == 0){
+            char * file_path = client_message + 8;
+            handle_upload(client_sock, file_path);
+        }
+
+        
+
+        else if (strncmp(client_message, "$VIEW$", 6) == 0){
+            handle_view(client_sock);
+        }
+
+        else if (strncmp(client_message, "$DOWNLOAD$", 10) == 0){
+            char * file_name = client_message + 10;
+            handle_download(client_sock, file_name);
+        }
+        else {
+            const char * msg = "Unknown Command";
+            write(client_sock, msg, strlen(msg));
+        }
+    }
+    if (read_size == 0){
+        puts ("Client disconnected");
+    }
+    else if(read_size == -1){
+        perror("recv failed");
+    }
 }
 
 void handle_upload(int client_sock, const char * file_path){
+    if (!check_storage_space()){
+        const char * msg = "$FAILURE$LOW_SPACES$";
+        write(client_sock, msg,strlen(msg));
+        return;
+    }
     char full_path[BUF_SIZE];
     snprintf(full_path, BUF_SIZE, "%s%s", UPLOAD_DIR, file_path);
 
-    FILE * file = fopen(full_path, "wb");
-    if (!file){
-        perror("fopen failed");
-        char * failed_writing_msg [] = "Failed to open file for writing";
-        write(client_sock, failed_writing_msg, size_of(failed_writing_msg));
+    FILE * fp = fopen(full_path, "wb");
+    if(!fp){
+        perror("Failed to open file for writing");
+        const char * msg = "Failed to open file for writing";
+        write(client_sock, msg, strlen(msg));
+        return;
+    }
+
+    const char * msg = "$SUCCESS$";
+    write(client_sock, msg, strlen(msg));
+
+    char buffer[BUF_SIZE];
+    int bytes_rcvd;
+    while((bytes_rcvd = recv(client_sock, buffer, BUF_SIZE, 0)) > 0){
+        fwrite(buffer, sizeof(char), bytes_rcvd, fp);
+        if (bytes_rcvd < BUF_SIZE){
+            break;
+        }
+    }
+
+    fclose(fp);
+    const char * success_msg = "$SUCCESS$";
+    write(client_sock, success_msg, strlen(success_msg));
+}
+
+void handle_view(int client_sock){
+    DIR * d = opendir(UPLOAD_DIR);
+    struct dirent * dir;
+    struct stat file_stat;
+    char file_info[BUF_SIZE] = "";
+
+    if (!d){
+        const char *msg = "$FAILURE$NO_CLIENT_DATA$";
+        write(client_sock,msg, strlen(msg));
+        return;
+    }
+
+    while ((dir = readdir(d)) != NULL) {
+        if (strcmp(dir->d_name, ".") != 0 && strcmp(dir->d_name, "..") != 0) {
+            char file_path[BUF_SIZE];
+            snprintf(file_path, sizeof(file_path), "%s%s", UPLOAD_DIR, dir->d_name);
+            if (stat(file_path, &file_stat) == 0) {
+                char temp[BUF_SIZE];
+                snprintf(temp, sizeof(temp), "Name: %s, Size: %ld bytes\n", dir->d_name, file_stat.st_size);
+                strcat(file_info, temp);
+            }
+        }
+    }
+
+    closedir(d);
+
+    if(strlen(file_info) == 0){
+        const char * msg = "$FAILURE$NO_CLIENT_DATA$";
+        write(client_sock, msg, strlen(msg));
+    }
+    else{
+        write(client_sock, file_info, strlen(file_info));
+    }
+}
+
+void handle_download(int client_sock, const char * file_name){
+    char full_path[BUF_SIZE];
+    snprintf(full_path, BUF_SIZE, "%s%s", UPLOAD_DIR, file_name);
+    FILE * fp = fopen(full_path, "rb");
+    
+    if (!fp){
+        const char *msg = "$FAILURE$FILE_NOT_FOUND$";
+        write(client_sock, msg, strlen(msg));
         return;
     }
 
     char buffer[BUF_SIZE];
-    int bytes_received;
-    while((bytes_received = recv(client_sock, buffer, BUF_SIZE, 0)) > 0){
-        fwrite(buffer, bytes_received, 1, file);
-        if (bytes_received < sizeof(buffer)){
-            break;
-        }
+    int bytes_sent;
+    while((bytes_sent = fread(buffer, sizeof(char), BUF_SIZE, fp)) > 0){
+        send(client_sock, buffer, bytes_sent, 0);
     }
-    fclose(file);
-    char * successful_upload_msg[] = "File uploaded successfully";
-    write(client_sock,successful_upload_msg, size_of(successful_upload_msg));
+    fclose(fp);
+}
+
+int check_storage_space() {
+    struct statvfs stat;
+    if (statvfs(UPLOAD_DIR, &stat) != 0) {
+        return 0;
+    }
+    unsigned long available_space = stat.f_bsize * stat.f_bavail;
+    return available_space >= CLIENT_STORAGE_LIMIT;
+}
+
+void create_upload_dir() {
+    struct stat st = {0};
+    if (stat(UPLOAD_DIR, &st) == -1) {
+        mkdir(UPLOAD_DIR, 0700);
+    }
 }
