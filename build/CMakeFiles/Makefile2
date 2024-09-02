@@ -205,6 +205,17 @@ CMakeFiles/cJSON_test.dir/clean:
 # Target rules for target CMakeFiles/check.dir
 
 # All Build rule for target.
+CMakeFiles/check.dir/all: CMakeFiles/cJSON_test.dir/all
+CMakeFiles/check.dir/all: tests/CMakeFiles/parse_examples.dir/all
+CMakeFiles/check.dir/all: tests/CMakeFiles/parse_number.dir/all
+CMakeFiles/check.dir/all: tests/CMakeFiles/parse_hex4.dir/all
+CMakeFiles/check.dir/all: tests/CMakeFiles/parse_string.dir/all
+CMakeFiles/check.dir/all: tests/CMakeFiles/parse_array.dir/all
+CMakeFiles/check.dir/all: tests/CMakeFiles/parse_object.dir/all
+CMakeFiles/check.dir/all: tests/CMakeFiles/parse_value.dir/all
+CMakeFiles/check.dir/all: tests/CMakeFiles/print_string.dir/all
+CMakeFiles/check.dir/all: tests/CMakeFiles/print_number.dir/all
+CMakeFiles/check.dir/all: tests/CMakeFiles/print_array.dir/all
 CMakeFiles/check.dir/all: tests/CMakeFiles/print_object.dir/all
 CMakeFiles/check.dir/all: tests/CMakeFiles/print_value.dir/all
 CMakeFiles/check.dir/all: tests/CMakeFiles/misc_tests.dir/all
@@ -213,17 +224,6 @@ CMakeFiles/check.dir/all: tests/CMakeFiles/compare_tests.dir/all
 CMakeFiles/check.dir/all: tests/CMakeFiles/cjson_add.dir/all
 CMakeFiles/check.dir/all: tests/CMakeFiles/readme_examples.dir/all
 CMakeFiles/check.dir/all: tests/CMakeFiles/minify_tests.dir/all
-CMakeFiles/check.dir/all: tests/CMakeFiles/parse_examples.dir/all
-CMakeFiles/check.dir/all: tests/CMakeFiles/parse_value.dir/all
-CMakeFiles/check.dir/all: tests/CMakeFiles/print_string.dir/all
-CMakeFiles/check.dir/all: tests/CMakeFiles/print_number.dir/all
-CMakeFiles/check.dir/all: tests/CMakeFiles/print_array.dir/all
-CMakeFiles/check.dir/all: tests/CMakeFiles/parse_string.dir/all
-CMakeFiles/check.dir/all: tests/CMakeFiles/parse_array.dir/all
-CMakeFiles/check.dir/all: tests/CMakeFiles/parse_object.dir/all
-CMakeFiles/check.dir/all: CMakeFiles/cJSON_test.dir/all
-CMakeFiles/check.dir/all: tests/CMakeFiles/parse_number.dir/all
-CMakeFiles/check.dir/all: tests/CMakeFiles/parse_hex4.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/check.dir/build.make CMakeFiles/check.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/check.dir/build.make CMakeFiles/check.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/home/abdullah/Desktop/BSCS/Semester -5/OS/Project/build/CMakeFiles" --progress-num= "Built target check"
@@ -301,8 +301,8 @@ tests/CMakeFiles/unity.dir/clean:
 # Target rules for target tests/CMakeFiles/parse_examples.dir
 
 # All Build rule for target.
-tests/CMakeFiles/parse_examples.dir/all: tests/CMakeFiles/unity.dir/all
 tests/CMakeFiles/parse_examples.dir/all: CMakeFiles/cjson.dir/all
+tests/CMakeFiles/parse_examples.dir/all: tests/CMakeFiles/unity.dir/all
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/parse_examples.dir/build.make tests/CMakeFiles/parse_examples.dir/depend
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/parse_examples.dir/build.make tests/CMakeFiles/parse_examples.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/home/abdullah/Desktop/BSCS/Semester -5/OS/Project/build/CMakeFiles" --progress-num=18,19 "Built target parse_examples"
@@ -328,8 +328,8 @@ tests/CMakeFiles/parse_examples.dir/clean:
 # Target rules for target tests/CMakeFiles/parse_number.dir
 
 # All Build rule for target.
-tests/CMakeFiles/parse_number.dir/all: tests/CMakeFiles/unity.dir/all
 tests/CMakeFiles/parse_number.dir/all: CMakeFiles/cjson.dir/all
+tests/CMakeFiles/parse_number.dir/all: tests/CMakeFiles/unity.dir/all
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/parse_number.dir/build.make tests/CMakeFiles/parse_number.dir/depend
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/parse_number.dir/build.make tests/CMakeFiles/parse_number.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/home/abdullah/Desktop/BSCS/Semester -5/OS/Project/build/CMakeFiles" --progress-num=22,23 "Built target parse_number"
@@ -355,8 +355,8 @@ tests/CMakeFiles/parse_number.dir/clean:
 # Target rules for target tests/CMakeFiles/parse_hex4.dir
 
 # All Build rule for target.
-tests/CMakeFiles/parse_hex4.dir/all: tests/CMakeFiles/unity.dir/all
 tests/CMakeFiles/parse_hex4.dir/all: CMakeFiles/cjson.dir/all
+tests/CMakeFiles/parse_hex4.dir/all: tests/CMakeFiles/unity.dir/all
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/parse_hex4.dir/build.make tests/CMakeFiles/parse_hex4.dir/depend
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/parse_hex4.dir/build.make tests/CMakeFiles/parse_hex4.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/home/abdullah/Desktop/BSCS/Semester -5/OS/Project/build/CMakeFiles" --progress-num=20,21 "Built target parse_hex4"
@@ -382,8 +382,8 @@ tests/CMakeFiles/parse_hex4.dir/clean:
 # Target rules for target tests/CMakeFiles/parse_string.dir
 
 # All Build rule for target.
-tests/CMakeFiles/parse_string.dir/all: tests/CMakeFiles/unity.dir/all
 tests/CMakeFiles/parse_string.dir/all: CMakeFiles/cjson.dir/all
+tests/CMakeFiles/parse_string.dir/all: tests/CMakeFiles/unity.dir/all
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/parse_string.dir/build.make tests/CMakeFiles/parse_string.dir/depend
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/parse_string.dir/build.make tests/CMakeFiles/parse_string.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/home/abdullah/Desktop/BSCS/Semester -5/OS/Project/build/CMakeFiles" --progress-num=26,27 "Built target parse_string"
@@ -409,8 +409,8 @@ tests/CMakeFiles/parse_string.dir/clean:
 # Target rules for target tests/CMakeFiles/parse_array.dir
 
 # All Build rule for target.
-tests/CMakeFiles/parse_array.dir/all: tests/CMakeFiles/unity.dir/all
 tests/CMakeFiles/parse_array.dir/all: CMakeFiles/cjson.dir/all
+tests/CMakeFiles/parse_array.dir/all: tests/CMakeFiles/unity.dir/all
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/parse_array.dir/build.make tests/CMakeFiles/parse_array.dir/depend
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/parse_array.dir/build.make tests/CMakeFiles/parse_array.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/home/abdullah/Desktop/BSCS/Semester -5/OS/Project/build/CMakeFiles" --progress-num=16,17 "Built target parse_array"
@@ -436,8 +436,8 @@ tests/CMakeFiles/parse_array.dir/clean:
 # Target rules for target tests/CMakeFiles/parse_object.dir
 
 # All Build rule for target.
-tests/CMakeFiles/parse_object.dir/all: tests/CMakeFiles/unity.dir/all
 tests/CMakeFiles/parse_object.dir/all: CMakeFiles/cjson.dir/all
+tests/CMakeFiles/parse_object.dir/all: tests/CMakeFiles/unity.dir/all
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/parse_object.dir/build.make tests/CMakeFiles/parse_object.dir/depend
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/parse_object.dir/build.make tests/CMakeFiles/parse_object.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/home/abdullah/Desktop/BSCS/Semester -5/OS/Project/build/CMakeFiles" --progress-num=24,25 "Built target parse_object"
@@ -463,8 +463,8 @@ tests/CMakeFiles/parse_object.dir/clean:
 # Target rules for target tests/CMakeFiles/parse_value.dir
 
 # All Build rule for target.
-tests/CMakeFiles/parse_value.dir/all: tests/CMakeFiles/unity.dir/all
 tests/CMakeFiles/parse_value.dir/all: CMakeFiles/cjson.dir/all
+tests/CMakeFiles/parse_value.dir/all: tests/CMakeFiles/unity.dir/all
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/parse_value.dir/build.make tests/CMakeFiles/parse_value.dir/depend
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/parse_value.dir/build.make tests/CMakeFiles/parse_value.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/home/abdullah/Desktop/BSCS/Semester -5/OS/Project/build/CMakeFiles" --progress-num=28,29 "Built target parse_value"
@@ -490,8 +490,8 @@ tests/CMakeFiles/parse_value.dir/clean:
 # Target rules for target tests/CMakeFiles/print_string.dir
 
 # All Build rule for target.
-tests/CMakeFiles/print_string.dir/all: tests/CMakeFiles/unity.dir/all
 tests/CMakeFiles/print_string.dir/all: CMakeFiles/cjson.dir/all
+tests/CMakeFiles/print_string.dir/all: tests/CMakeFiles/unity.dir/all
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/print_string.dir/build.make tests/CMakeFiles/print_string.dir/depend
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/print_string.dir/build.make tests/CMakeFiles/print_string.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/home/abdullah/Desktop/BSCS/Semester -5/OS/Project/build/CMakeFiles" --progress-num=38,39 "Built target print_string"
@@ -517,8 +517,8 @@ tests/CMakeFiles/print_string.dir/clean:
 # Target rules for target tests/CMakeFiles/print_number.dir
 
 # All Build rule for target.
-tests/CMakeFiles/print_number.dir/all: tests/CMakeFiles/unity.dir/all
 tests/CMakeFiles/print_number.dir/all: CMakeFiles/cjson.dir/all
+tests/CMakeFiles/print_number.dir/all: tests/CMakeFiles/unity.dir/all
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/print_number.dir/build.make tests/CMakeFiles/print_number.dir/depend
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/print_number.dir/build.make tests/CMakeFiles/print_number.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/home/abdullah/Desktop/BSCS/Semester -5/OS/Project/build/CMakeFiles" --progress-num=34,35 "Built target print_number"
@@ -544,8 +544,8 @@ tests/CMakeFiles/print_number.dir/clean:
 # Target rules for target tests/CMakeFiles/print_array.dir
 
 # All Build rule for target.
-tests/CMakeFiles/print_array.dir/all: tests/CMakeFiles/unity.dir/all
 tests/CMakeFiles/print_array.dir/all: CMakeFiles/cjson.dir/all
+tests/CMakeFiles/print_array.dir/all: tests/CMakeFiles/unity.dir/all
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/print_array.dir/build.make tests/CMakeFiles/print_array.dir/depend
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/print_array.dir/build.make tests/CMakeFiles/print_array.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/home/abdullah/Desktop/BSCS/Semester -5/OS/Project/build/CMakeFiles" --progress-num=32,33 "Built target print_array"
@@ -571,8 +571,8 @@ tests/CMakeFiles/print_array.dir/clean:
 # Target rules for target tests/CMakeFiles/print_object.dir
 
 # All Build rule for target.
-tests/CMakeFiles/print_object.dir/all: tests/CMakeFiles/unity.dir/all
 tests/CMakeFiles/print_object.dir/all: CMakeFiles/cjson.dir/all
+tests/CMakeFiles/print_object.dir/all: tests/CMakeFiles/unity.dir/all
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/print_object.dir/build.make tests/CMakeFiles/print_object.dir/depend
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/print_object.dir/build.make tests/CMakeFiles/print_object.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/home/abdullah/Desktop/BSCS/Semester -5/OS/Project/build/CMakeFiles" --progress-num=36,37 "Built target print_object"
@@ -598,8 +598,8 @@ tests/CMakeFiles/print_object.dir/clean:
 # Target rules for target tests/CMakeFiles/print_value.dir
 
 # All Build rule for target.
-tests/CMakeFiles/print_value.dir/all: tests/CMakeFiles/unity.dir/all
 tests/CMakeFiles/print_value.dir/all: CMakeFiles/cjson.dir/all
+tests/CMakeFiles/print_value.dir/all: tests/CMakeFiles/unity.dir/all
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/print_value.dir/build.make tests/CMakeFiles/print_value.dir/depend
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/print_value.dir/build.make tests/CMakeFiles/print_value.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/home/abdullah/Desktop/BSCS/Semester -5/OS/Project/build/CMakeFiles" --progress-num=40,41 "Built target print_value"
@@ -625,8 +625,8 @@ tests/CMakeFiles/print_value.dir/clean:
 # Target rules for target tests/CMakeFiles/misc_tests.dir
 
 # All Build rule for target.
-tests/CMakeFiles/misc_tests.dir/all: tests/CMakeFiles/unity.dir/all
 tests/CMakeFiles/misc_tests.dir/all: CMakeFiles/cjson.dir/all
+tests/CMakeFiles/misc_tests.dir/all: tests/CMakeFiles/unity.dir/all
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/misc_tests.dir/build.make tests/CMakeFiles/misc_tests.dir/depend
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/misc_tests.dir/build.make tests/CMakeFiles/misc_tests.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/home/abdullah/Desktop/BSCS/Semester -5/OS/Project/build/CMakeFiles" --progress-num=14,15 "Built target misc_tests"
@@ -652,8 +652,8 @@ tests/CMakeFiles/misc_tests.dir/clean:
 # Target rules for target tests/CMakeFiles/parse_with_opts.dir
 
 # All Build rule for target.
-tests/CMakeFiles/parse_with_opts.dir/all: tests/CMakeFiles/unity.dir/all
 tests/CMakeFiles/parse_with_opts.dir/all: CMakeFiles/cjson.dir/all
+tests/CMakeFiles/parse_with_opts.dir/all: tests/CMakeFiles/unity.dir/all
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/parse_with_opts.dir/build.make tests/CMakeFiles/parse_with_opts.dir/depend
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/parse_with_opts.dir/build.make tests/CMakeFiles/parse_with_opts.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/home/abdullah/Desktop/BSCS/Semester -5/OS/Project/build/CMakeFiles" --progress-num=30,31 "Built target parse_with_opts"
@@ -679,8 +679,8 @@ tests/CMakeFiles/parse_with_opts.dir/clean:
 # Target rules for target tests/CMakeFiles/compare_tests.dir
 
 # All Build rule for target.
-tests/CMakeFiles/compare_tests.dir/all: tests/CMakeFiles/unity.dir/all
 tests/CMakeFiles/compare_tests.dir/all: CMakeFiles/cjson.dir/all
+tests/CMakeFiles/compare_tests.dir/all: tests/CMakeFiles/unity.dir/all
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/compare_tests.dir/build.make tests/CMakeFiles/compare_tests.dir/depend
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/compare_tests.dir/build.make tests/CMakeFiles/compare_tests.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/home/abdullah/Desktop/BSCS/Semester -5/OS/Project/build/CMakeFiles" --progress-num=7,8 "Built target compare_tests"
@@ -706,8 +706,8 @@ tests/CMakeFiles/compare_tests.dir/clean:
 # Target rules for target tests/CMakeFiles/cjson_add.dir
 
 # All Build rule for target.
-tests/CMakeFiles/cjson_add.dir/all: tests/CMakeFiles/unity.dir/all
 tests/CMakeFiles/cjson_add.dir/all: CMakeFiles/cjson.dir/all
+tests/CMakeFiles/cjson_add.dir/all: tests/CMakeFiles/unity.dir/all
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/cjson_add.dir/build.make tests/CMakeFiles/cjson_add.dir/depend
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/cjson_add.dir/build.make tests/CMakeFiles/cjson_add.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/home/abdullah/Desktop/BSCS/Semester -5/OS/Project/build/CMakeFiles" --progress-num=5,6 "Built target cjson_add"
@@ -733,8 +733,8 @@ tests/CMakeFiles/cjson_add.dir/clean:
 # Target rules for target tests/CMakeFiles/readme_examples.dir
 
 # All Build rule for target.
-tests/CMakeFiles/readme_examples.dir/all: tests/CMakeFiles/unity.dir/all
 tests/CMakeFiles/readme_examples.dir/all: CMakeFiles/cjson.dir/all
+tests/CMakeFiles/readme_examples.dir/all: tests/CMakeFiles/unity.dir/all
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/readme_examples.dir/build.make tests/CMakeFiles/readme_examples.dir/depend
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/readme_examples.dir/build.make tests/CMakeFiles/readme_examples.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/home/abdullah/Desktop/BSCS/Semester -5/OS/Project/build/CMakeFiles" --progress-num=42,43 "Built target readme_examples"
@@ -760,8 +760,8 @@ tests/CMakeFiles/readme_examples.dir/clean:
 # Target rules for target tests/CMakeFiles/minify_tests.dir
 
 # All Build rule for target.
-tests/CMakeFiles/minify_tests.dir/all: tests/CMakeFiles/unity.dir/all
 tests/CMakeFiles/minify_tests.dir/all: CMakeFiles/cjson.dir/all
+tests/CMakeFiles/minify_tests.dir/all: tests/CMakeFiles/unity.dir/all
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/minify_tests.dir/build.make tests/CMakeFiles/minify_tests.dir/depend
 	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/minify_tests.dir/build.make tests/CMakeFiles/minify_tests.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/home/abdullah/Desktop/BSCS/Semester -5/OS/Project/build/CMakeFiles" --progress-num=12,13 "Built target minify_tests"

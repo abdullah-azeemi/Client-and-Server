@@ -4,7 +4,7 @@
 *.exe
 
 # Ignore the uploads directory if you don't want to track uploaded files
-uploads/*
+uploads/
 
 # Ignore editor-specific temporary files
 *.swp
@@ -17,11 +17,13 @@ uploads/*
 server
 client
 
-# For VS CODE
+# Ignore VS Code workspace settings
+.vscode/
 
-.vscode
+# Ignore build directories
+build/
+cJson/
 
-build/*
-
-cJson/*
-
+# Ignore specific files
+sample.txt
+q.txt

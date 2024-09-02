@@ -6,13 +6,14 @@ CFLAGS = -Wall -g
 SERVER_TARGET = server
 CLIENT_TARGET = client
 
-# Rule to build the server
-$(SERVER_TARGET): server.c
-	$(CC) $(CFLAGS) -o $(SERVER_TARGET) server.c
-
+make: $(SERVER_TARGET) $(CLIENT_TARGET)
 # Rule to build the client
 $(CLIENT_TARGET): client.c
 	$(CC) $(CFLAGS) -o $(CLIENT_TARGET) client.c
+
+# Rule to build the server
+$(SERVER_TARGET): server.c
+	$(CC) $(CFLAGS) -o $(SERVER_TARGET) server.c
 
 # Clean rule to remove the compiled files
 clean:
