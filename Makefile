@@ -1,20 +1,15 @@
-# Define the compiler and flags
+# Makefile
 CC = gcc
-CFLAGS = -Wall -g
+CFLAGS = -Wall -pthread
 
-# Define the targets and source files
-SERVER_TARGET = server
-CLIENT_TARGET = client
+# Targets
+all: server client
 
-make: $(SERVER_TARGET) $(CLIENT_TARGET)
-# Rule to build the client
-$(CLIENT_TARGET): client.c
-	$(CC) $(CFLAGS) -o $(CLIENT_TARGET) client.c
+server: server.c huffman.c server-config.c server-config.h
+	$(CC) $(CFLAGS) -o server server.c huffman.c server-config.c
 
-# Rule to build the server
-$(SERVER_TARGET): server.c
-	$(CC) $(CFLAGS) -o $(SERVER_TARGET) server.c
+client: client.c
+	$(CC) $(CFLAGS) -o client client.c
 
-# Clean rule to remove the compiled files
 clean:
-	rm -f $(SERVER_TARGET) $(CLIENT_TARGET)
+	rm -f server client

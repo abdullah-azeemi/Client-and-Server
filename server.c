@@ -8,22 +8,34 @@
 #include <sys/statvfs.h>
 #include <dirent.h>
 #include <errno.h>
+#include <pthread.h>
+#include "server-config.h" 
+#include "huffman.h"     
 
 #define BUF_SIZE 2000
 #define UPLOAD_DIR "./uploads/"
-#define CLIENT_STORAGE_LIMIT 10240 // 10kb
+#define CLIENT_STORAGE_LIMIT 10240 // 10 KB
 
-void handle_client(int client_sock);
+// Function prototypes
+void *handle_client_thread(void *client_sock_ptr);
 void handle_upload(int client_sock, const char *file_path);
 void handle_view(int client_sock);
 void handle_download(int client_sock, const char *file_name);
 int check_storage_space();
 void create_upload_dir();
+void encrypt_file(const char *input_path, const char *output_path);
+void decrypt_file(const char *input_path, const char *output_path);
 
 int main() {
     int socket_desc, client_sock, c;
     struct sockaddr_in server, client;
+    pthread_t thread_id;
 
+    // Load server configuration
+    load_configuration();
+    print_configuration();
+
+    // Create upload directory if it doesn't exist
     create_upload_dir();
 
     // Create socket
@@ -46,27 +58,33 @@ int main() {
     puts("Bind done");
 
     // Listen
-    listen(socket_desc, 3);
+    listen(socket_desc, max_clients);
     puts("Waiting for incoming connections...");
     c = sizeof(struct sockaddr_in);
 
-    // Accept connections
-    client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t *)&c);
+    // Accept and handle connections in separate threads
+    while ((client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t *)&c))) {
+        printf("Connection accepted\n");
+
+        if (pthread_create(&thread_id, NULL, handle_client_thread, (void *)&client_sock) < 0) {
+            perror("Could not create thread");
+            return 1;
+        }
+
+        puts("Handler assigned");
+    }
+
     if (client_sock < 0) {
         perror("accept failed");
         return 1;
     }
-    puts("Connection accepted");
 
-    handle_client(client_sock);
-
-    close(client_sock);
     close(socket_desc);
-
     return 0;
 }
 
-void handle_client(int client_sock) {
+void *handle_client_thread(void *client_sock_ptr) {
+    int client_sock = *(int *)client_sock_ptr;
     char client_message[BUF_SIZE];
     int read_size;
 
@@ -92,6 +110,9 @@ void handle_client(int client_sock) {
     } else if (read_size == -1) {
         perror("recv failed");
     }
+
+    close(client_sock);
+    return 0;
 }
 
 void handle_upload(int client_sock, const char *file_path) {
@@ -104,7 +125,16 @@ void handle_upload(int client_sock, const char *file_path) {
     char full_path[BUF_SIZE];
     snprintf(full_path, BUF_SIZE, "%s%s", UPLOAD_DIR, file_path);
 
-    FILE *fp = fopen(full_path, "wb");
+    // Temporary file to save the uploaded data before encryption
+    char temp_path[BUF_SIZE];
+    if (snprintf(temp_path, sizeof(temp_path), "%s.temp", full_path) >= sizeof(temp_path)) {
+        perror("File path too long to add .temp suffix");
+        const char *msg = "File path too long";
+        write(client_sock, msg, strlen(msg));
+        return;
+    }
+
+    FILE *fp = fopen(temp_path, "wb");
     if (!fp) {
         perror("Failed to open file for writing");
         const char *msg = "Failed to open file for writing";
@@ -125,9 +155,18 @@ void handle_upload(int client_sock, const char *file_path) {
     }
 
     fclose(fp);
+
+    if (encryption_algorithm == ENCRYPTION_ALGO_HUFFMAN) {
+        encrypt_file(temp_path, full_path);
+        remove(temp_path); 
+    } else {
+        rename(temp_path, full_path);
+    }
+
     const char *success_msg = "$SUCCESS$";
     write(client_sock, success_msg, strlen(success_msg));
 }
+
 
 void handle_view(int client_sock) {
     DIR *d = opendir(UPLOAD_DIR);
@@ -141,7 +180,6 @@ void handle_view(int client_sock) {
         return;
     }
 
-    // iterating through files in Directory
     while ((dir = readdir(d)) != NULL) {
         if (strcmp(dir->d_name, ".") != 0 && strcmp(dir->d_name, "..") != 0) {
             char file_path[BUF_SIZE];
@@ -156,7 +194,6 @@ void handle_view(int client_sock) {
 
     closedir(d);
 
-    // Send file information to the client
     if (strlen(file_info) == 0) {
         const char *msg = "$FAILURE$NO_CLIENT_DATA$";
         write(client_sock, msg, strlen(msg));
@@ -168,8 +205,22 @@ void handle_view(int client_sock) {
 void handle_download(int client_sock, const char *file_name) {
     char full_path[BUF_SIZE];
     snprintf(full_path, BUF_SIZE, "%s%s", UPLOAD_DIR, file_name);
-    FILE *fp = fopen(full_path, "rb");
 
+    char temp_path[BUF_SIZE];
+
+    if (snprintf(temp_path, sizeof(temp_path), "%s.temp", full_path) >= sizeof(temp_path)) {
+        perror("File path too long to add .temp suffix");
+        const char *msg = "File path too long";
+        write(client_sock, msg, strlen(msg));
+        return;
+    }
+
+    if (encryption_algorithm == ENCRYPTION_ALGO_HUFFMAN) {
+        decrypt_file(full_path, temp_path);
+        strcpy(full_path, temp_path); 
+    }
+
+    FILE *fp = fopen(full_path, "rb");
     if (!fp) {
         const char *msg = "$FAILURE$FILE_NOT_FOUND$";
         write(client_sock, msg, strlen(msg));
@@ -181,7 +232,11 @@ void handle_download(int client_sock, const char *file_name) {
     while ((bytes_sent = fread(buffer, sizeof(char), BUF_SIZE, fp)) > 0) {
         send(client_sock, buffer, bytes_sent, 0);
     }
+
     fclose(fp);
+    if (encryption_algorithm == ENCRYPTION_ALGO_HUFFMAN) {
+        remove(temp_path);
+    }
 }
 
 int check_storage_space() {
@@ -198,4 +253,51 @@ void create_upload_dir() {
     if (stat(UPLOAD_DIR, &st) == -1) {
         mkdir(UPLOAD_DIR, 0700);
     }
+}
+
+void encrypt_file(const char *input_path, const char *output_path) {
+    FILE *in = fopen(input_path, "rb");
+    FILE *out = fopen(output_path, "wb");
+    if (!in || !out) {
+        perror("File open failed");
+        return;
+    }
+    int freq[256] = {0};
+    char data[256];
+    int size = 0;
+
+    int ch;
+    while ((ch = fgetc(in)) != EOF) {
+        if (freq[ch] == 0) {
+            data[size++] = ch;
+        }
+        freq[ch]++;
+    }
+
+    
+    HuffmanCodes(data, freq, size);
+
+    fclose(in);
+    fclose(out);
+}
+
+// Huffman decryption function
+void decrypt_file(const char *input_path, const char *output_path) {
+    
+    printf("Decrypting file: %s -> %s\n", input_path, output_path);
+
+    FILE *in = fopen(input_path, "rb");
+    FILE *out = fopen(output_path, "wb");
+    if (!in || !out) {
+        perror("File open failed");
+        return;
+    }
+
+    int ch;
+    while ((ch = fgetc(in)) != EOF) {
+        fputc(ch, out);
+    }
+
+    fclose(in);
+    fclose(out);
 }
