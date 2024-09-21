@@ -8,7 +8,9 @@
 #define BUF_SIZE 2000
 
 void upload_file(int sock, const char *file_path);
+void view_files(int sock);
 void download_file(int sock, const char *file_name);
+char *rle_encode(const char *data, size_t length);
 
 int main(int argc, char *argv[]) {
     int sock;
@@ -27,137 +29,160 @@ int main(int argc, char *argv[]) {
     server.sin_family = AF_INET;
     server.sin_port = htons(8889);
 
+    // Connect to remote server
     if (connect(sock, (struct sockaddr *)&server, sizeof(server)) < 0) {
         perror("Connect failed. Error");
         return 1;
     }
     puts("Connected");
 
+    // Authentication (Username:Password)
+    char credentials[BUF_SIZE];
+    printf("Enter username:password: ");
+    scanf("%s", credentials);
+    send(sock, credentials, strlen(credentials), 0);
+
+    // Wait for authentication response
+    int recv_size = recv(sock, server_reply, BUF_SIZE, 0);
+    if (recv_size < 0) {
+        puts("Recv failed");
+        return 1;
+    }
+    server_reply[recv_size] = '\0';
+    printf("Server reply: %s\n", server_reply);
+
+    if (strcmp(server_reply, "Authentication Failed") == 0) {
+        puts("Authentication failed. Exiting...");
+        close(sock);
+        return 1;
+    }
+
     while (1) {
-        printf("Enter command: ");
+        printf("Enter command ($upload$, $view$, $download$, or 'exit'): ");
         scanf("%s", message);
 
-       
         if (strcmp(message, "exit") == 0) {
             break;
         }
 
-        // Handle upload command
-        if (strncmp(message, "$UPLOAD$", 8) == 0) {
-            char *file_path = message + 8; // Extracting file path
+        if (strncmp(message, "$upload$", 8) == 0) {
+            char *file_path = message + strlen("$upload$");
             upload_file(sock, file_path);
-            continue;
-        }
-
-        if (strncmp(message, "$DOWNLOAD$", 10) == 0) {
-            char *file_name = message + 10; 
+        } else if (strcmp(message, "$view$") == 0) {
+            view_files(sock);
+        } else if (strncmp(message, "$download$", 10) == 0) {
+            char *file_name = message + strlen("$download$");
             download_file(sock, file_name);
-            continue;
-        }
-
-        if (strcmp(message, "$VIEW$") == 0) {
+        } else {
+            // Send the command
             if (send(sock, message, strlen(message), 0) < 0) {
                 puts("Send failed");
-                continue;
+                return 1;
             }
-            int recv_size = recv(sock, server_reply, BUF_SIZE, 0);
+
+            // Receive a reply from the server
+            recv_size = recv(sock, server_reply, BUF_SIZE, 0);
             if (recv_size < 0) {
                 puts("Recv failed");
-            } else {
-                server_reply[recv_size] = '\0';
-                puts("Files in the server:");
-                puts(server_reply);
+                break;
             }
-            continue;
+            server_reply[recv_size] = '\0';
+            printf("Server reply: %s\n", server_reply);
         }
-
-        if (send(sock, message, strlen(message), 0) < 0) {
-            puts("Send failed");
-            return 1;
-        }
-
-        int recv_size = recv(sock, server_reply, BUF_SIZE, 0);
-        if (recv_size < 0) {
-            puts("Recv failed");
-            break;
-        }
-        server_reply[recv_size] = '\0';
-
-        puts("Server reply:");
-        puts(server_reply);
     }
 
-    // Close the socket
     close(sock);
     return 0;
 }
 
-// Function to upload a file
+// Handle file upload with encoding
 void upload_file(int sock, const char *file_path) {
     FILE *file = fopen(file_path, "rb");
     if (!file) {
-        perror("Failed to open file"); 
-        const char *msg = "Failed to open file";
-        send(sock, msg, strlen(msg), 0);
+        perror("Failed to open file");
+        send(sock, "Failed to open file", strlen("Failed to open file"), 0);
         return;
     }
 
     char upload_command[BUF_SIZE];
-    snprintf(upload_command, sizeof(upload_command), "$UPLOAD$%s", file_path);
+    snprintf(upload_command, sizeof(upload_command), "$upload$%s$", file_path);
     send(sock, upload_command, strlen(upload_command), 0);
-
-    char server_reply[BUF_SIZE];
-    int recv_size = recv(sock, server_reply, BUF_SIZE, 0);
-    if (recv_size < 0 || strncmp(server_reply, "$SUCCESS$", 9) != 0) {
-        puts("Upload request failed.");
-        fclose(file);
-        return;
-    }
 
     char buffer[BUF_SIZE];
     size_t bytes_read;
+
     while ((bytes_read = fread(buffer, 1, sizeof(buffer), file)) > 0) {
-        if (send(sock, buffer, bytes_read, 0) < 0) {
+        char *encoded_data = rle_encode(buffer, bytes_read);
+        if (send(sock, encoded_data, strlen(encoded_data), 0) < 0) {
             puts("Send failed");
+            free(encoded_data);
             break;
         }
+        free(encoded_data);
     }
 
     fclose(file);
-    recv_size = recv(sock, server_reply, BUF_SIZE, 0);
-    if (recv_size < 0) {
-        puts("Recv failed");
-    } else {
+    puts("File upload (encoded) completed");
+}
+
+// View list of files from server
+void view_files(int sock) {
+    send(sock, "$view$", strlen("$view$"), 0);
+
+    char server_reply[BUF_SIZE];
+    int recv_size = recv(sock, server_reply, BUF_SIZE, 0);
+    if (recv_size > 0) {
         server_reply[recv_size] = '\0';
-        puts("Server response:");
-        puts(server_reply);
+        printf("Server reply: %s\n", server_reply);
+    } else {
+        puts("Failed to retrieve file list");
     }
 }
 
+// Download file from server
 void download_file(int sock, const char *file_name) {
-    char download_path[BUF_SIZE];
-    snprintf(download_path, sizeof(download_path), "%s/Downloads/%s", getenv("HOME"), file_name);
-
-    FILE *file = fopen(download_path, "wb");
-    if (!file) {
-        perror("Failed to open file for writing");
-        return;
-    }
-
-    // Notify server of download request
     char download_command[BUF_SIZE];
-    snprintf(download_command, sizeof(download_command), "$DOWNLOAD$%s", file_name);
+    snprintf(download_command, sizeof(download_command), "$download$%s$", file_name);
     send(sock, download_command, strlen(download_command), 0);
 
     char buffer[BUF_SIZE];
     int bytes_received;
+    FILE *file = fopen(file_name, "wb");
+    if (!file) {
+        perror("Failed to open file");
+        return;
+    }
+
     while ((bytes_received = recv(sock, buffer, BUF_SIZE, 0)) > 0) {
         fwrite(buffer, 1, bytes_received, file);
-        if (bytes_received < BUF_SIZE) {
-            break; 
-        }
     }
 
     fclose(file);
-    printf("File downloaded successfully to: %s\n", download_path);
+    puts("File download completed");
+}
+
+// Basic RLE encoding function
+char *rle_encode(const char *data, size_t length) {
+    char *encoded = (char *)malloc(length * 2 + 1);
+    if (!encoded) {
+        return NULL;
+    }
+
+    int count;
+    char current;
+    size_t encoded_index = 0;
+
+    for (size_t i = 0; i < length; i++) {
+        current = data[i];
+        count = 1;
+
+        while (i + 1 < length && data[i + 1] == current) {
+            count++;
+            i++;
+        }
+
+        encoded_index += snprintf(encoded + encoded_index, length * 2 + 1 - encoded_index, "%d%c", count, current);
+    }
+    encoded[encoded_index] = '\0';
+    return encoded;
 }
