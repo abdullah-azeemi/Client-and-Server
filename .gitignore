@@ -27,3 +27,8 @@ cJson/
 # Ignore specific files
 sample.txt
 q.txt
+test.txt
+
+# Credentials files saved for Clients
+credentials.txt
+
