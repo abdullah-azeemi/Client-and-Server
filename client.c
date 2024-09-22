@@ -11,6 +11,7 @@ void upload_file(int sock, const char *file_path);
 void view_files(int sock);
 void download_file(int sock, const char *file_name);
 char *rle_encode(const char *data, size_t length);
+char *rle_decode(const char *data, size_t length);
 
 int main(int argc, char *argv[]) {
     int sock;
@@ -139,7 +140,7 @@ void view_files(int sock) {
     }
 }
 
-// Download file from server
+// Download file from server and decode it
 void download_file(int sock, const char *file_name) {
     char download_command[BUF_SIZE];
     snprintf(download_command, sizeof(download_command), "$download$%s$", file_name);
@@ -185,4 +186,37 @@ char *rle_encode(const char *data, size_t length) {
     }
     encoded[encoded_index] = '\0';
     return encoded;
+}
+
+// Basic RLE decoding function
+char *rle_decode(const char *data, size_t length) {
+    char *decoded = (char *)malloc(length * 2 + 1);  // Allocate enough space for decoded data
+    if (!decoded) {
+        return NULL;
+    }
+
+    size_t decoded_index = 0;
+    int count;
+    char current_char;
+
+    for (size_t i = 0; i < length; i++) {
+        count = 0;
+
+        // Extract the count (assumes it will be a digit)
+        while (i < length && data[i] >= '0' && data[i] <= '9') {
+            count = count * 10 + (data[i] - '0');
+            i++;
+        }
+
+        // Extract the character to be repeated
+        if (i < length) {
+            current_char = data[i];
+            for (int j = 0; j < count; j++) {
+                decoded[decoded_index++] = current_char;
+            }
+        }
+    }
+
+    decoded[decoded_index] = '\0';
+    return decoded;
 }
