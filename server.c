@@ -128,6 +128,7 @@ int authenticate_client(int client_sock, char *client_name) {
             sscanf(received_credentials, "%[^:]", client_name);  // Extract client name
             fclose(cred_file);
             if (is_client_logged_in(client_name)) {
+                // Close old session
                 write(client_sock, "Client already logged in", 24);
                 return 0;
             }
@@ -141,7 +142,6 @@ int authenticate_client(int client_sock, char *client_name) {
     write(client_sock, "Authentication Failed", 21);
     return 0;
 }
-
 int is_client_logged_in(const char *client_name) {
     pthread_mutex_lock(&client_lock);  // Lock the mutex
     for (int i = 0; i < MAX_CLIENTS; i++) {

@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
     scanf("%s", credentials);
     send(sock, credentials, strlen(credentials), 0);
 
-    // Wait for authentication response
+    // Waiting for auth response
     int recv_size = recv(sock, server_reply, BUF_SIZE, 0);
     if (recv_size < 0) {
         puts("Recv failed");
@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
     server_reply[recv_size] = '\0';
     printf("Server reply: %s\n", server_reply);
 
-    if (strcmp(server_reply, "Authentication Failed") == 0) {
+    if (strcmp(server_reply, "Authentication Failed") == 0 || strcmp(server_reply, "Client already logged in") == 0) {
         puts("Authentication failed. Exiting...");
         close(sock);
         return 1;
@@ -75,13 +75,11 @@ int main(int argc, char *argv[]) {
             char *file_name = message + strlen("$download$");
             download_file(sock, file_name);
         } else {
-            // Send the command
             if (send(sock, message, strlen(message), 0) < 0) {
                 puts("Send failed");
                 return 1;
             }
 
-            // Receive a reply from the server
             recv_size = recv(sock, server_reply, BUF_SIZE, 0);
             if (recv_size < 0) {
                 puts("Recv failed");
@@ -96,7 +94,6 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-// Handle file upload with encoding
 void upload_file(int sock, const char *file_path) {
     FILE *file = fopen(file_path, "rb");
     if (!file) {
@@ -126,7 +123,6 @@ void upload_file(int sock, const char *file_path) {
     puts("File upload (encoded) completed");
 }
 
-// View list of files from server
 void view_files(int sock) {
     send(sock, "$view$", strlen("$view$"), 0);
 
@@ -140,7 +136,6 @@ void view_files(int sock) {
     }
 }
 
-// Download file from server and decode it
 void download_file(int sock, const char *file_name) {
     char download_command[BUF_SIZE];
     snprintf(download_command, sizeof(download_command), "$download$%s$", file_name);
@@ -148,7 +143,16 @@ void download_file(int sock, const char *file_name) {
 
     char buffer[BUF_SIZE];
     int bytes_received;
-    FILE *file = fopen(file_name, "wb");
+    char new_file_name[BUF_SIZE];
+    strcpy(new_file_name, file_name);
+
+    // Check for existing file
+    int version = 1;
+    while (access(new_file_name, F_OK) == 0) {
+        snprintf(new_file_name, BUF_SIZE, "%s(%d)", file_name, version++);
+    }
+
+    FILE *file = fopen(new_file_name, "wb");
     if (!file) {
         perror("Failed to open file");
         return;
@@ -159,10 +163,9 @@ void download_file(int sock, const char *file_name) {
     }
 
     fclose(file);
-    puts("File download completed");
+    printf("File download completed: %s\n", new_file_name);
 }
 
-// Basic RLE encoding function
 char *rle_encode(const char *data, size_t length) {
     char *encoded = (char *)malloc(length * 2 + 1);
     if (!encoded) {
@@ -188,7 +191,6 @@ char *rle_encode(const char *data, size_t length) {
     return encoded;
 }
 
-// Basic RLE decoding function
 char *rle_decode(const char *data, size_t length) {
     char *decoded = (char *)malloc(length * 2 + 1);  // Allocate enough space for decoded data
     if (!decoded) {
@@ -202,13 +204,10 @@ char *rle_decode(const char *data, size_t length) {
     for (size_t i = 0; i < length; i++) {
         count = 0;
 
-        // Extract the count (assumes it will be a digit)
         while (i < length && data[i] >= '0' && data[i] <= '9') {
             count = count * 10 + (data[i] - '0');
             i++;
         }
-
-        // Extract the character to be repeated
         if (i < length) {
             current_char = data[i];
             for (int j = 0; j < count; j++) {
