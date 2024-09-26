@@ -241,20 +241,34 @@ void handle_view(int client_sock, const char *client_name) {
     write(client_sock, file_list, strlen(file_list));
 }
 
-void handle_download(int client_sock, const char *file_name, const char *client_name) {
-    char full_path[BUF_SIZE];
-    snprintf(full_path, sizeof(full_path), "%s%s/%s", UPLOAD_DIR, client_name, file_name);
+void handle_download(int client_sock, const char *client_name, const char *file_name) {
+    char file_path[BUF_SIZE];
+    snprintf(file_path, sizeof(file_path), "uploads/%s/%s", client_name, file_name);
 
-    FILE *file = fopen(full_path, "rb");
-    if (!file) {
-        write(client_sock, "File not found", 14);
+    // Check if file exists
+    if (access(file_path, F_OK) == -1) {
+        perror("File does not exist");
+        write(client_sock, "ERROR: File not found\n", 23);
         return;
     }
 
+    // Open the file
+    FILE *file = fopen(file_path, "rb");
+    if (!file) {
+        perror("Failed to open file");
+        write(client_sock, "ERROR: Unable to open file\n", 28);
+        return;
+    }
+
+    // Read and send the file contents
     char buffer[BUF_SIZE];
     size_t bytes_read;
     while ((bytes_read = fread(buffer, 1, sizeof(buffer), file)) > 0) {
-        send(client_sock, buffer, bytes_read, 0);
+        if (write(client_sock, buffer, bytes_read) < 0) {
+            perror("Failed to send file");
+            fclose(file);
+            return;
+        }
     }
 
     fclose(file);

@@ -138,7 +138,8 @@ void view_files(int sock) {
 
 void download_file(int sock, const char *file_name) {
     char download_command[BUF_SIZE];
-    snprintf(download_command, sizeof(download_command), "$download$%s$", file_name);
+    const char *client_name = "client1";
+    snprintf(download_command, sizeof(download_command), "uploads/%s/%s",client_name, file_name);
     send(sock, download_command, strlen(download_command), 0);
 
     char buffer[BUF_SIZE];
