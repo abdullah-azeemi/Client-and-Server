@@ -243,7 +243,9 @@ void handle_view(int client_sock, const char *client_name) {
 
 void handle_download(int client_sock, const char *client_name, const char *file_name) {
     char file_path[BUF_SIZE];
-    snprintf(file_path, sizeof(file_path), "uploads/%s/%s", client_name, file_name);
+    // snprintf(file_path, sizeof(file_path), "uploads/%s/%s", client_name, file_name);
+    snprintf(file_path, sizeof(file_path), "uploads/%s/%s",client_name,file_name);
+
 
     // Check if file exists
     if (access(file_path, F_OK) == -1) {
@@ -275,18 +277,20 @@ void handle_download(int client_sock, const char *client_name, const char *file_
 }
 
 char* extract_file_path(const char *input) {
-    const char *file_path = input + strlen("$upload$");
-    char *end = strchr(file_path, '$');
-    if (end) {
-        size_t path_len = end - file_path;
-        char *extracted_path = (char*)malloc(path_len + 1);
-        strncpy(extracted_path, file_path, path_len);
-        extracted_path[path_len] = '\0';
+    // Find the start of the file path, after "$download$"
+    const char *file_path = strstr(input, "$download$");
+    if (file_path) {
+        file_path += strlen("$download$"); // Move pointer past "$download$"
+        
+        // Allocate memory for the extracted path and copy it
+        char *extracted_path = (char*)malloc(strlen(file_path) + 1);
+        if (extracted_path) {
+            strcpy(extracted_path, file_path);  // Copy the remaining string
+        }
         return extracted_path;
     }
-    return NULL;
+    return NULL;  // Return NULL if "$download$" is not found
 }
-
 void *connection_handler(void *client_sock_ptr) {
     int client_sock = *(int*)client_sock_ptr;
     char client_name[BUF_SIZE];
@@ -317,8 +321,9 @@ void *connection_handler(void *client_sock_ptr) {
             handle_view(client_sock, client_name);
         } else if (strncmp(client_message, "$download$", 10) == 0) {
             char *file_name = extract_file_path(client_message);
+            
             if (file_name) {
-                handle_download(client_sock, file_name, client_name);
+                handle_download(client_sock, client_name,file_name);
                 free(file_name);
             } else {
                 write(client_sock, "Invalid download command", 25);
@@ -340,3 +345,5 @@ void *connection_handler(void *client_sock_ptr) {
     free(client_sock_ptr);
     return NULL;
 }
+
+

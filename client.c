@@ -73,6 +73,9 @@ int main(int argc, char *argv[]) {
             view_files(sock);
         } else if (strncmp(message, "$download$", 10) == 0) {
             char *file_name = message + strlen("$download$");
+            // printf("fileName : ",file_name);
+            // printf("message : ",message);
+            // printf("sock : ",sock);
             download_file(sock, file_name);
         } else {
             if (send(sock, message, strlen(message), 0) < 0) {
@@ -139,13 +142,19 @@ void view_files(int sock) {
 void download_file(int sock, const char *file_name) {
     char download_command[BUF_SIZE];
     const char *client_name = "client1";
-    snprintf(download_command, sizeof(download_command), "uploads/%s/%s",client_name, file_name);
+   // snprintf(download_command, sizeof(download_command), "uploads/%s/%s",client_name, file_name);
+    snprintf(download_command, sizeof(download_command), "$download$%s", file_name);
+
     send(sock, download_command, strlen(download_command), 0);
 
     char buffer[BUF_SIZE];
     int bytes_received;
     char new_file_name[BUF_SIZE];
-    strcpy(new_file_name, file_name);
+    // char new_file_name[100] = "";  // Make sure this size is sufficient
+    // strcat(new_file_name, "uploads/client1/");
+
+    strcat(new_file_name, file_name);
+    
 
     // Check for existing file
     int version = 1;
@@ -160,8 +169,11 @@ void download_file(int sock, const char *file_name) {
     }
 
     while ((bytes_received = recv(sock, buffer, BUF_SIZE, 0)) > 0) {
-        fwrite(buffer, 1, bytes_received, file);
+    char *decoded_data = rle_decode(buffer, bytes_received);
+    fwrite(decoded_data, 1, strlen(decoded_data), file);
+    free(decoded_data); // Free the decoded data
     }
+
 
     fclose(file);
     printf("File download completed: %s\n", new_file_name);
