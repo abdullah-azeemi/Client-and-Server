@@ -172,6 +172,7 @@ void download_file(int sock, const char *file_name) {
     char *decoded_data = rle_decode(buffer, bytes_received);
     fwrite(decoded_data, 1, strlen(decoded_data), file);
     free(decoded_data); // Free the decoded data
+    break;
     }
 
 
