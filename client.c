@@ -12,6 +12,7 @@ void view_files(int sock);
 void download_file(int sock, const char *file_name);
 char *rle_encode(const char *data, size_t length);
 char *rle_decode(const char *data, size_t length);
+void delete_file(int sock, const char *file_name);
 
 int main(int argc, char *argv[]) {
     int sock;
@@ -59,7 +60,7 @@ int main(int argc, char *argv[]) {
     }
 
     while (1) {
-        printf("Enter command ($upload$, $view$, $download$, or 'exit'): ");
+        printf("Enter command ($upload$, $view$, $download$,$delete$, or 'exit'): ");
         scanf("%s", message);
 
         if (strcmp(message, "exit") == 0) {
@@ -77,7 +78,15 @@ int main(int argc, char *argv[]) {
             // printf("message : ",message);
             // printf("sock : ",sock);
             download_file(sock, file_name);
-        } else {
+        } 
+        // Add in the main client loop:
+        else if (strncmp(message, "$delete$", 8) == 0) {
+        char *file_name = message + strlen("$delete$");
+        delete_file(sock, file_name);
+        }
+
+         // Add a new function:
+    else {
             if (send(sock, message, strlen(message), 0) < 0) {
                 puts("Send failed");
                 return 1;
@@ -232,4 +241,18 @@ char *rle_decode(const char *data, size_t length) {
 
     decoded[decoded_index] = '\0';
     return decoded;
+}
+void delete_file(int sock, const char *file_name) {
+    char delete_command[BUF_SIZE];
+    snprintf(delete_command, sizeof(delete_command), "$delete$%s", file_name);
+    send(sock, delete_command, strlen(delete_command), 0);
+
+    char server_reply[BUF_SIZE];
+    int recv_size = recv(sock, server_reply, BUF_SIZE, 0);
+    if (recv_size > 0) {
+        server_reply[recv_size] = '\0';
+        printf("Server reply: %s\n", server_reply);
+    } else {
+        puts("Failed to receive server response");
+    }
 }

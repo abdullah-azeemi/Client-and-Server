@@ -7,30 +7,166 @@
 #include <pthread.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <semaphore.h>
 
 #define BUF_SIZE 2000
 #define CRED_FILE "credentials.txt"
 #define UPLOAD_DIR "./uploads/"
 
+
 #define MAX_CLIENTS 100  // max clients
 char *logged_in_clients[MAX_CLIENTS];  // logged in clients
 pthread_mutex_t client_lock;           // mutex for shared data
+#define QUEUE_SIZE 10
+
+typedef struct {
+    int client_sock;
+    char file_operation[BUF_SIZE];
+    char client_name[50]; 
+} QueueItem;
+
+typedef struct {
+    QueueItem items[QUEUE_SIZE];
+    int front;
+    int rear;
+} Queue;
+
+Queue queue;
+pthread_mutex_t queue_mutex;  
+sem_t queue_sem;              
+void init_queue() {
+    queue.front = 0;
+    queue.rear = 0;
+    pthread_mutex_init(&queue_mutex, NULL);
+    sem_init(&queue_sem, 0, 0); 
+}
+
+int enqueue(QueueItem item) {
+    pthread_mutex_lock(&queue_mutex);
+    if ((queue.rear + 1) % QUEUE_SIZE == queue.front) {
+        pthread_mutex_unlock(&queue_mutex);
+        return -1; 
+    }
+
+    queue.items[queue.rear] = item;
+    queue.rear = (queue.rear + 1) % QUEUE_SIZE;
+
+    pthread_mutex_unlock(&queue_mutex);
+    sem_post(&queue_sem);  
+    return 0;
+}
+
+int dequeue(QueueItem *item) {
+    pthread_mutex_lock(&queue_mutex);
+
+    if (queue.front == queue.rear) {
+        pthread_mutex_unlock(&queue_mutex);
+        return -1;
+    }
+
+    *item = queue.items[queue.front];
+    queue.front = (queue.front + 1) % QUEUE_SIZE;
+
+    pthread_mutex_unlock(&queue_mutex);
+    return 0;
+}
+
 
 void *connection_handler(void *client_sock);
 char *extract_file_path(const char *input);
+char* extract_file_path2(const char *input);
 void handle_upload(int client_sock, const char *file_path, const char *client_name);
 void handle_view(int client_sock, const char *client_name);
 void handle_download(int client_sock, const char *file_name, const char *client_name);
+void handle_delete(int client_sock, const char *file_name, const char *client_name);
 int authenticate_client(int client_sock, char *client_name);
 void ensure_client_dir(const char *client_name);
 void add_client(const char *username, const char *password);
 int is_client_logged_in(const char *client_name);
 void log_in_client(const char *client_name);
 void log_out_client(const char *client_name);
+void *file_handler(void *arg);
+// int main(int argc, char *argv[]) {
 
+//     int socket_desc, client_sock, c;
+//     struct sockaddr_in server, client;
+
+//     pthread_mutex_init(&client_lock, NULL);  // Initialize the mutex
+
+//     // Create socket
+//     socket_desc = socket(AF_INET, SOCK_STREAM, 0);
+//     if (socket_desc == -1) {
+//         printf("Could not create socket");
+//         return 1;
+//     }
+//     puts("Socket created");
+
+//     server.sin_family = AF_INET;
+//     server.sin_addr.s_addr = INADDR_ANY;
+//     server.sin_port = htons(8889);
+
+//     if (bind(socket_desc, (struct sockaddr *)&server, sizeof(server)) < 0) {
+//         perror("Bind failed. Error");
+//         return 1;
+//     }
+//     puts("Bind done");
+
+//     listen(socket_desc, 3);
+//     puts("Waiting for incoming connections...");
+//     c = sizeof(struct sockaddr_in);
+
+//     printf("Admin: Enter command (add_client <username:password> or 'start_server'):\n");
+//     char admin_command[BUF_SIZE];
+//     while (1) {
+//         fgets(admin_command, BUF_SIZE, stdin);
+//         admin_command[strcspn(admin_command, "\n")] = 0;  
+
+//         if (strncmp(admin_command, "add_client ", 11) == 0) {
+//             char *credentials = admin_command + 11;
+//             char username[BUF_SIZE], password[BUF_SIZE];
+//             sscanf(credentials, "%[^:]:%s", username, password);
+//             add_client(username, password);
+//         } else if (strcmp(admin_command, "start_server") == 0) {
+//             break;  
+//         } else {
+//             printf("Unknown command\n");
+//         }
+//     }
+//     while ((client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c))) {
+//         puts("Connection accepted");
+
+//         pthread_t client_thread;
+//         int *new_sock = malloc(sizeof(int));
+//         *new_sock = client_sock;
+
+//         if (pthread_create(&client_thread, NULL, connection_handler, (void*)new_sock) < 0) {
+//             perror("Could not create thread");
+//             return 1;
+//         }
+//         puts("Handler assigned");
+//     }
+
+//     if (client_sock < 0) {
+//         perror("Accept failed");
+//         return 1;
+//     }
+
+//     pthread_mutex_destroy(&client_lock);  
+//     return 0;
+// }
 int main(int argc, char *argv[]) {
     int socket_desc, client_sock, c;
     struct sockaddr_in server, client;
+
+    // Initialize the queue and related synchronization primitives
+    init_queue();
+
+    // Create a separate thread for the file handler
+    pthread_t file_handler_thread;
+    if (pthread_create(&file_handler_thread, NULL, file_handler, NULL) < 0) {
+        perror("Could not create file handler thread");
+        return 1;
+    }
 
     pthread_mutex_init(&client_lock, NULL);  // Initialize the mutex
 
@@ -56,11 +192,12 @@ int main(int argc, char *argv[]) {
     puts("Waiting for incoming connections...");
     c = sizeof(struct sockaddr_in);
 
+    // Admin command handling to add clients or start the server
     printf("Admin: Enter command (add_client <username:password> or 'start_server'):\n");
     char admin_command[BUF_SIZE];
     while (1) {
         fgets(admin_command, BUF_SIZE, stdin);
-        admin_command[strcspn(admin_command, "\n")] = 0;  
+        admin_command[strcspn(admin_command, "\n")] = 0;
 
         if (strncmp(admin_command, "add_client ", 11) == 0) {
             char *credentials = admin_command + 11;
@@ -68,11 +205,13 @@ int main(int argc, char *argv[]) {
             sscanf(credentials, "%[^:]:%s", username, password);
             add_client(username, password);
         } else if (strcmp(admin_command, "start_server") == 0) {
-            break;  
+            break;
         } else {
             printf("Unknown command\n");
         }
     }
+
+    // Start accepting client connections
     while ((client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c))) {
         puts("Connection accepted");
 
@@ -92,9 +231,12 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    pthread_mutex_destroy(&client_lock);  
+    pthread_mutex_destroy(&client_lock);  // Cleanup
+    sem_destroy(&queue_sem);              // Cleanup
+    pthread_mutex_destroy(&queue_mutex);  // Cleanup
     return 0;
 }
+
 void add_client(const char *username, const char *password) {
     FILE *cred_file = fopen(CRED_FILE, "a");
     if (!cred_file) {
@@ -291,59 +433,230 @@ char* extract_file_path(const char *input) {
     }
     return NULL;  // Return NULL if "$download$" is not found
 }
+
+char* extract_file_path2(const char *input) {
+    const char *file_path = strstr(input, "$delete$");
+    if (file_path) {
+        file_path += strlen("$delete$"); 
+        char *extracted_path = (char*)malloc(strlen(file_path) + 1);
+        if (extracted_path) {
+            strcpy(extracted_path, file_path);  
+        }
+        return extracted_path;
+    }
+    return NULL;  
+}
+
+// void *connection_handler(void *client_sock_ptr) {
+//     int client_sock = *(int*)client_sock_ptr;
+//     char client_name[BUF_SIZE];
+
+//     if (!authenticate_client(client_sock, client_name)) {
+//         close(client_sock);
+//         free(client_sock_ptr);
+//         return NULL;
+//     }
+
+//     ensure_client_dir(client_name);
+
+//     int read_size;
+//     char client_message[BUF_SIZE];
+
+//     while ((read_size = recv(client_sock, client_message, BUF_SIZE, 0)) > 0) {
+//         client_message[read_size] = '\0';
+
+//         if (strncmp(client_message, "$upload$", 8) == 0) {
+//             char *file_path = extract_file_path(client_message);
+//             if (file_path) {
+//                 handle_upload(client_sock, file_path, client_name);
+//                 free(file_path);
+//             } else {
+//                 write(client_sock, "Invalid upload command", 22);
+//             }
+//         } else if (strncmp(client_message, "$view$", 6) == 0) {
+//             handle_view(client_sock, client_name);
+//         } else if (strncmp(client_message, "$download$", 10) == 0) {
+//             char *file_name = extract_file_path(client_message);
+            
+//             if (file_name) {
+//                 handle_download(client_sock, client_name,file_name);
+//                 free(file_name);
+//             } else {
+//                 write(client_sock, "Invalid download command", 25);
+//             }
+//         }
+//         else if (strncmp(client_message, "$delete$", 8) == 0) {
+//             char *file_name = extract_file_path(client_message);
+//             if (file_name) {
+//                 handle_delete(client_sock, file_name, client_name);
+//                 free(file_name);
+//             } else {
+//                 write(client_sock, "Invalid delete command", 22);
+//             }
+//         }
+//         else {
+//             write(client_sock, "Unknown command", 15);
+//         }
+//     }
+
+//     if (read_size == 0) {
+//         puts("Client disconnected");
+//     } else if (read_size == -1) {
+//         perror("recv failed");
+//     }
+
+//     log_out_client(client_name);
+
+//     close(client_sock);
+//     free(client_sock_ptr);
+//     return NULL;
+// }
 void *connection_handler(void *client_sock_ptr) {
     int client_sock = *(int*)client_sock_ptr;
     char client_name[BUF_SIZE];
 
+    // Authenticate the client
     if (!authenticate_client(client_sock, client_name)) {
         close(client_sock);
         free(client_sock_ptr);
         return NULL;
     }
 
+    // Ensure the client's directory exists
     ensure_client_dir(client_name);
 
     int read_size;
     char client_message[BUF_SIZE];
 
+    // Client message handling loop
     while ((read_size = recv(client_sock, client_message, BUF_SIZE, 0)) > 0) {
-        client_message[read_size] = '\0';
+        client_message[read_size] = '\0';  // Null-terminate the received message
 
+        QueueItem queue_item;
+        queue_item.client_sock = client_sock;
+        strncpy(queue_item.file_operation, client_message, BUF_SIZE);
+        strncpy(queue_item.client_name, client_name, sizeof(queue_item.client_name));
+
+        // Enqueue the operation for processing
+        if (enqueue(queue_item) < 0) {
+            // Queue is full, notify client
+            write(client_sock, "Server busy, try again later\n", 29);
+            continue;
+        }
+
+        // Process each client request based on command
         if (strncmp(client_message, "$upload$", 8) == 0) {
+            // Extract the file path from the message
             char *file_path = extract_file_path(client_message);
             if (file_path) {
                 handle_upload(client_sock, file_path, client_name);
                 free(file_path);
             } else {
-                write(client_sock, "Invalid upload command", 22);
+                write(client_sock, "Invalid upload command\n", 23);
             }
+
         } else if (strncmp(client_message, "$view$", 6) == 0) {
+            // Handle viewing files
             handle_view(client_sock, client_name);
+
         } else if (strncmp(client_message, "$download$", 10) == 0) {
+            // Extract the file name from the message
             char *file_name = extract_file_path(client_message);
-            
             if (file_name) {
-                handle_download(client_sock, client_name,file_name);
+                handle_download(client_sock, client_name, file_name);
                 free(file_name);
             } else {
-                write(client_sock, "Invalid download command", 25);
+                write(client_sock, "Invalid download command\n", 26);
             }
+
+        } else if (strncmp(client_message, "$delete$", 8) == 0) {
+            // Extract the file name to delete
+            char *file_name = extract_file_path2(client_message);
+            if (file_name) {
+                handle_delete(client_sock, file_name, client_name);
+                free(file_name);
+            } else {
+                write(client_sock, "Invalid delete command\n", 23);
+            }
+
         } else {
-            write(client_sock, "Unknown command", 15);
+            // Unknown command
+            write(client_sock, "Unknown command\n", 16);
         }
     }
 
+    // If the client disconnected or recv failed
     if (read_size == 0) {
         puts("Client disconnected");
     } else if (read_size == -1) {
         perror("recv failed");
     }
 
+    // Log out the client
     log_out_client(client_name);
 
+    // Clean up
     close(client_sock);
     free(client_sock_ptr);
     return NULL;
 }
 
 
+void *file_handler(void *arg) {
+    QueueItem item;
+
+    while (1) {
+        // Wait for data to be available in the queue
+        sem_wait(&queue_sem);
+
+        // Dequeue the item
+        if (dequeue(&item) == 0) {
+            // Process the dequeued item
+            if (strncmp(item.file_operation, "$upload$", 8) == 0) {
+                char *file_path = extract_file_path(item.file_operation);
+                if (file_path) {
+                    handle_upload(item.client_sock, file_path, item.client_name);
+                    free(file_path);
+                } else {
+                    write(item.client_sock, "Invalid upload command", 22);
+                }
+            } else if (strncmp(item.file_operation, "$view$", 6) == 0) {
+                handle_view(item.client_sock, item.client_name);
+            } else if (strncmp(item.file_operation, "$download$", 10) == 0) {
+                char *file_name = extract_file_path(item.file_operation);
+                if (file_name) {
+                    handle_download(item.client_sock, item.client_name, file_name);
+                    free(file_name);
+                } else {
+                    write(item.client_sock, "Invalid download command", 25);
+                }
+            }
+            
+             else {
+                write(item.client_sock, "Unknown command", 15);
+            }
+        }
+    }
+
+    return NULL;
+}
+
+void handle_delete(int client_sock, const char *file_name, const char *client_name) {
+    // Construct the full path to the file
+    char file_path[BUF_SIZE];
+    client_name = "client1";
+    snprintf(file_path, sizeof(file_path), "uploads/%s/%s", client_name, file_name);
+
+    // Check if file exists
+    if (access(file_path, F_OK) == -1) {
+        write(client_sock, "ERROR: File not found\n", 23);
+        return;
+    }
+
+    if (remove(file_path) == 0) {
+        write(client_sock, "File deleted successfully\n", 26);
+    } else {
+        perror("Failed to delete file");
+        write(client_sock, "ERROR: Failed to delete file\n", 29);
+    }
+}
