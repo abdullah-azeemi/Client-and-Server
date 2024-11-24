@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <semaphore.h>
+#include"memory_manager.h"
 
 #define BUF_SIZE 2000
 #define CRED_FILE "credentials.txt"
@@ -86,74 +87,7 @@ int is_client_logged_in(const char *client_name);
 void log_in_client(const char *client_name);
 void log_out_client(const char *client_name);
 void *file_handler(void *arg);
-// int main(int argc, char *argv[]) {
 
-//     int socket_desc, client_sock, c;
-//     struct sockaddr_in server, client;
-
-//     pthread_mutex_init(&client_lock, NULL);  // Initialize the mutex
-
-//     // Create socket
-//     socket_desc = socket(AF_INET, SOCK_STREAM, 0);
-//     if (socket_desc == -1) {
-//         printf("Could not create socket");
-//         return 1;
-//     }
-//     puts("Socket created");
-
-//     server.sin_family = AF_INET;
-//     server.sin_addr.s_addr = INADDR_ANY;
-//     server.sin_port = htons(8889);
-
-//     if (bind(socket_desc, (struct sockaddr *)&server, sizeof(server)) < 0) {
-//         perror("Bind failed. Error");
-//         return 1;
-//     }
-//     puts("Bind done");
-
-//     listen(socket_desc, 3);
-//     puts("Waiting for incoming connections...");
-//     c = sizeof(struct sockaddr_in);
-
-//     printf("Admin: Enter command (add_client <username:password> or 'start_server'):\n");
-//     char admin_command[BUF_SIZE];
-//     while (1) {
-//         fgets(admin_command, BUF_SIZE, stdin);
-//         admin_command[strcspn(admin_command, "\n")] = 0;  
-
-//         if (strncmp(admin_command, "add_client ", 11) == 0) {
-//             char *credentials = admin_command + 11;
-//             char username[BUF_SIZE], password[BUF_SIZE];
-//             sscanf(credentials, "%[^:]:%s", username, password);
-//             add_client(username, password);
-//         } else if (strcmp(admin_command, "start_server") == 0) {
-//             break;  
-//         } else {
-//             printf("Unknown command\n");
-//         }
-//     }
-//     while ((client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c))) {
-//         puts("Connection accepted");
-
-//         pthread_t client_thread;
-//         int *new_sock = malloc(sizeof(int));
-//         *new_sock = client_sock;
-
-//         if (pthread_create(&client_thread, NULL, connection_handler, (void*)new_sock) < 0) {
-//             perror("Could not create thread");
-//             return 1;
-//         }
-//         puts("Handler assigned");
-//     }
-
-//     if (client_sock < 0) {
-//         perror("Accept failed");
-//         return 1;
-//     }
-
-//     pthread_mutex_destroy(&client_lock);  
-//     return 0;
-// }
 int main(int argc, char *argv[]) {
     int socket_desc, client_sock, c;
     struct sockaddr_in server, client;
@@ -216,7 +150,7 @@ int main(int argc, char *argv[]) {
         puts("Connection accepted");
 
         pthread_t client_thread;
-        int *new_sock = malloc(sizeof(int));
+        int *new_sock = mymalloc(sizeof(int));
         *new_sock = client_sock;
 
         if (pthread_create(&client_thread, NULL, connection_handler, (void*)new_sock) < 0) {
